@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Calculadora de Vale-Transporte</title>
+    <style>
+        body {
+            background-color: #1c1c1c;
+            color: #f8f8f8;
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+            background-color: #2b2b2b;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+        }
+
+        h1, h2 {
+            text-align: center;
+            color: #f4d03f;
+        }
+
+        label {
+            display: block;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border-radius: 5px;
+            border: none;
+            background-color: #444;
+            color: white;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 10px;
+            width: 100%;
+            background-color: #f4d03f;
+            border: none;
+            color: #1c1c1c;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #d4ac0d;
+        }
+
+        .resultado {
+            margin-top: 30px;
+            background-color: #1a1a1a;
+            padding: 20px;
+            border-radius: 10px;
+            color: #f8f8f8;
+        }
+
+        .resultado .total {
+            font-size: 1.4em;
+            color: #2ecc71;
+        }
+
+        .erro {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Calculadora de Vale-Transporte</h1>
+        <form id="vt-form">
+            <label for="cidade">Cidade:</label>
+            <select id="cidade" required>
+                <option value="">Selecione</option>
+                <option value="Juiz de Fora|MG|entrada">Juiz de Fora</option>
+                <option value="Belo Horizonte|MG|entrada">Belo Horizonte</option>
+                <option value="Rio de Janeiro|RJ|entrada">Rio de Janeiro</option>
+                <option value="São Paulo|SP|diario">São Paulo</option>
+                <option value="Vitória|ES|diario">Vitória</option>
+            </select>
+
+            <label for="dias">Dias trabalhados:</label>
+            <input type="number" id="dias" required min="1">
+
+            <div id="vales-por-dia-container">
+                <label for="vales">Vales usados por dia:</label>
+                <input type="number" id="vales" min="1" value="2" required>
+            </div>
+
+            <button type="submit">Calcular</button>
+        </form>
+
+        <div id="resultado" class="resultado"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById('vt-form');
+        const cidadeSelect = document.getElementById('cidade');
+        const valesContainer = document.getElementById('vales-por-dia-container');
+        const resultadoDiv = document.getElementById('resultado');
+        const valesInput = document.getElementById('vales');
+
+        // Mostrar ou ocultar o campo de vales por dia com base na cidade
+        cidadeSelect.addEventListener('change', () => {
+            const tipo = cidadeSelect.value.split("|")[2];
+            if (tipo === "entrada") {
+                valesContainer.style.display = 'block';
+                valesInput.required = true;
+            } else {
+                valesContainer.style.display = 'none';
+                valesInput.required = false;
+            }
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault(); // impede recarregamento da página
+            resultadoDiv.innerHTML = "Calculando...";
+
+            const [cidade, estado, tipo] = cidadeSelect.value.split("|");
+            const dias = document.getElementById('dias').value;
+            const vales = valesInput.value;
+
+            const url = new URL("http://127.0.0.1:5000/calcular");
+            url.searchParams.append("cidade", cidade);
+            url.searchParams.append("estado", estado);
+            url.searchParams.append("dias_trabalhados", dias);
+            if (tipo === "entrada") {
+                url.searchParams.append("vales_por_dia", vales);
+            }
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                if (response.ok) {
+                    resultadoDiv.innerHTML = `
+                        <h2>Resultado</h2>
+                        <p><strong>Cidade:</strong> ${data.cidade} - ${data.estado}</p>
+                        <p><strong>Tipo de cobrança:</strong> ${data.tipo_cobranca}</p>
+                        <p><strong>Valor unitário:</strong> R$ ${data.valor_unitario.toFixed(2)}</p>
+                        <p><strong>Dias trabalhados:</strong> ${data.dias_trabalhados}</p>
+                        ${data.vales_por_dia !== null ? `<p><strong>Vales por dia:</strong> ${data.vales_por_dia}</p>` : ''}
+                        <p><strong>Total:</strong> <span class="total">R$ ${data.total.toFixed(2)}</span></p>
+                    `;
+                } else {
+                    resultadoDiv.innerHTML = `<p class="erro">Erro: ${data.erro}</p>`;
+                }
+            } catch (err) {
+                resultadoDiv.innerHTML = `<p class="erro">Erro ao conectar com a API.</p>`;
+            }
+        });
+    </script>
+</body>
+</html>
