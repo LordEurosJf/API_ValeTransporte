@@ -1,8 +1,9 @@
+from flask import Flask, request, jsonify, send_from_directory
+from flask_cors import CORS
+import os
 
-from flask import Flask, request, jsonify
-from flask_cors import CORS 
 app = Flask(__name__)
-CORS(app) 
+CORS(app)
 
 # Dados da cidade: valor e tipo de cobrança
 dados_vale = {
@@ -13,6 +14,12 @@ dados_vale = {
     ("Vitória", "ES"): {"valor": 4.90, "tipo": "diário"}
 }
 
+# Rota principal - serve o index.html
+@app.route('/')
+def homepage():
+    return send_from_directory(os.getcwd(), 'index.html')
+
+# Rota de cálculo do vale-transporte
 @app.route('/calcular', methods=['GET'])
 def calcular_vale():
     cidade = request.args.get('cidade')
@@ -49,16 +56,7 @@ def calcular_vale():
         "total": round(total, 2)
     })
 
+# Execução local ou para plataformas como Render
 if __name__ == '__main__':
-    import os
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
-
-from flask import send_from_directory
-import os
-
-@app.route('/')
-def homepage():
-    return send_from_directory(os.getcwd(), 'index.html')
-
-
